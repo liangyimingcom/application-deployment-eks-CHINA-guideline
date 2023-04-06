@@ -90,7 +90,7 @@
 
 ## 第三步：准备 EKS集群的Yaml配置文件
 
-**Yaml文件名：《eks_cluster_zhy_v125.yaml》** 。在Cloud9里面”New Terminal“，然后复制粘贴如下代码创建文件。
+**Yaml文件名：《[eks_cluster_zhy_v125.yaml](https://github.com/liangyimingcom/application-deployment-eks-CHINA-guideline/blob/main/cf-template/eks_cluster_zhy_v125.yaml)》** 。在Cloud9里面”New Terminal“，然后复制粘贴如下代码创建文件。
 
 ```yaml
 cat << EOF > eks_cluster_zhy_v125.yaml

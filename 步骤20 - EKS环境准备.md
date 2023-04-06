@@ -84,7 +84,7 @@ Amazon Web Services在海外区域上线了Cluod9服务，除了上述基本的W
 
 [步骤-4]  查看实例启动状态。 此时实例已经正常启动，点击红色框中的实例ID可以查看实例的相关信息
 
-![image-20230406235827537](../../../../../Users/yiming/Library/Application%20Support/typora-user-images/image-20230406235827537.png)
+![image-20230407025205546](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230407025205546.png)
 
 
 
