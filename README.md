@@ -2,6 +2,10 @@
 
 ## 第一次在EKS 中国区上部署应用的指南说明
 
+本文链接：https://github.com/liangyimingcom/application-deployment-eks-CHINA-guideline
+
+
+
 
 第一次在EKS China上部署应用，总是会遇到很多疑问。
 
