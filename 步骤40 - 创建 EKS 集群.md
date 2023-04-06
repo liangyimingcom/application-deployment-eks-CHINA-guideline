@@ -239,7 +239,7 @@ EOF
 ```
 
 ```
-kubectl apply -f resource/nginx-app/nginx-nlb.yaml 
+kubectl apply -f ./nginx-nlb.yaml 
 
 ## Check deployment status
 kubectl get pods
