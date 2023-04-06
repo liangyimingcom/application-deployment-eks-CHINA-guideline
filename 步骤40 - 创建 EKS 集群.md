@@ -179,7 +179,7 @@ kube-system   kube-proxy-s9dn6          1/1     Running   0          27m     10.
 
 >  配置环境变量用于后续使用
 
-```
+```bash
 CLUSTER_NAME=mobile-app 
 AWS_REGION=cn-northwest-1
 
@@ -238,7 +238,7 @@ spec:
 EOF
 ```
 
-```
+```bash
 kubectl apply -f ./nginx-nlb.yaml 
 
 ## Check deployment status
@@ -253,6 +253,56 @@ ELB=$(kubectl get service service-nginx -o json | jq -r '.status.loadBalancer.in
 curl -m3 -v $ELB
 ```
 
+> 查看结果是否一致
+
+```bash
+[ec2-user@ip-10-203-0-177 workspace]$ curl -m3 -v $ELB
+*   Trying 161.189.90.53:80...
+* Connected to ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn (161.189.90.53) port 80 (#0)
+> GET / HTTP/1.1
+> Host: ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn
+> User-Agent: curl/7.79.1
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.23.4
+< Date: Thu, 06 Apr 2023 19:08:42 GMT
+< Content-Type: text/html
+< Content-Length: 615
+< Last-Modified: Tue, 28 Mar 2023 15:01:54 GMT
+< Connection: keep-alive
+< ETag: "64230162-267"
+< Accept-Ranges: bytes
+< 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+* Connection #0 to host ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn left intact
+[ec2-user@ip-10-203-0-177 workspace]$ 
+```
+
+>
 > 清理
 
 ```
