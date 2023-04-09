@@ -242,7 +242,11 @@ kubectl edit configmap aws-auth --namespace kube-system
 
 > 第四步：登录AWS Console控制台，查看 eks集群的配置情况，可以正常显示，权限问题解决。
 
-![image-20230409232553721](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409232553721.png)
+![image-20230410000657247](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230410000657247.png)
+
+
+
+
 
 
 
