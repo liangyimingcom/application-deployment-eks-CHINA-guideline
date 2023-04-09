@@ -31,6 +31,8 @@
 - 步骤 20-EKS 环境准备。
 - 步骤 30-EKSVPC 规划与部署。
 - 步骤 40-创建 EKS 集群。
-- 步骤 50-部署 AWS LoadBalancer Controller.md 步骤 60-部署应用到 EKS 集群。
+- 步骤 50-部署 AWS LoadBalancer Controller.md 
+
+- 步骤 60-部署应用到 EKS 集群。
 
 - 步骤 70-任何步骤创建失败后的环境清理。

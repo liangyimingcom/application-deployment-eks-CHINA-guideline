@@ -175,6 +175,77 @@ kube-system   kube-proxy-s9dn6          1/1     Running   0          27m     10.
 
 
 
+## （可选）登录AWS Console控制台，查看 eks集群的配置情况
+
+登录后并打开：https://cn-northwest-1.console.amazonaws.cn/eks/home?region=cn-northwest-1#
+
+
+
+由于此EKS集群为C9的IAM用户创建，所以会显示“您的当前用户或角色无权访问此 EKS nodegroup 上的 Kubernetes 对象”，如下图：
+
+![image-20230409170357066](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409170357066.png)
+
+
+
+这是由于在 kubectl 中配置的 AWS IAM 实体未经 Amazon EKS 进行身份验证时会遇到此错误，即当前用户或角色没有 Kubernetes RBAC 权限来描述集群资源。面对这种情况，我们需要在集群的身份验证配置映射增加当前用户的条目，即把你的 IAM 实体已映射到 aws-auth ConfigMap里。
+
+
+
+<u>操作步骤如下：</u>
+
+> 第一步：获取  aws-auth ConfigMap username 的arn信息
+
+```bash
+CLUSTER_NAME=mobile-app 
+AWS_REGION=cn-northwest-1
+
+#运行以下命令检查您的 IAM 实体是否在 aws-auth ConfigMap 中，并获取 username 的arn信息：
+eksctl get iamidentitymapping --cluster $CLUSTER_NAME
+
+```
+
+![image-20230409231607271](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409231607271.png)
+
+
+
+> 第二步：通过运行以下命令自动映射您的 IAM 实体 到aws-auth ConfigMap里
+
+```bash
+#上一步获取的username 的arn信息
+export EKSCREATEDUSERARN=arn:aws-cn:iam::XXXXXXXXXXXX:role/eksctl-mobile-app-nodegroup-app-n-NodeInstanceRole-1FM6UH617GBOF
+#您当前登录AWS Console控制台的IAM用户arn；
+export AWSLOGINUSERARN=arn:aws-cn:iam::XXXXXXXXXXXX:user/USERNAME 
+
+#通过运行以下命令自动映射您的 IAM 实体：
+eksctl create iamidentitymapping \
+    --cluster $CLUSTER_NAME \
+    --region $AWS_REGION \
+    --arn  $AWSLOGINUSERARN \
+    --group system:masters \
+    --no-duplicate-arns \
+    --username $EKSCREATEDUSERARN
+```
+
+![image-20230409232223379](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409232223379.png)
+
+
+
+> 第三步：通过运行以下命令， 查看新增后的 aws-auth ConfigMap 配置：
+
+```bash
+kubectl edit configmap aws-auth --namespace kube-system
+```
+
+![image-20230409232459343](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409232459343.png)
+
+
+
+> 第四步：登录AWS Console控制台，查看 eks集群的配置情况，可以正常显示，权限问题解决。
+
+![image-20230409232553721](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230409232553721.png)
+
+
+
 ## （可选）部署一个nginx测试eks集群基本功能是否正常工作
 
 >  配置环境变量用于后续使用
