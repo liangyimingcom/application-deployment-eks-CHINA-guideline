@@ -145,81 +145,81 @@ $ eksctl create iamserviceaccount \
 
 #### 安装 Helm
 
-官方给出的Helm在线安装命令如下，由于国内与海外网络问题，海外最新安装包可能无法下载，建议使用上传后安装的方法：
+官方给出的Helm在线安装命令如下：
 
-~~curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash~~
+> ~~curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash~~
 
+由于国内与海外网络原因，海外最新安装包大概率无法下载，建议使用上传后安装的方法，即：从github上把离线的helm安装包上传到Cloud9中，然后进行本地安装。
 
-
-将离线的helm安装包上传到Cloud9中，执行如下命令：
+执行如下命令：
 
 ```bash
+#从github上把离线的helm安装包上传到Cloud9中
+wget https://kgithub.com/liangyimingcom/application-deployment-eks-CHINA-guideline/raw/e84bc1033eec526b10ed72f62e16eae2fdddf4d7/image/helm-v3.11.2-linux-amd64.tar.gz
 
-
+#进行本地安装
 tar -zxvf helm-v3.11.2-linux-amd64.tar.gz
 sudo mv linux-amd64/helm /usr/local/bin/
 
-curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 ```
-
-
-
-
-
-```bash
-curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-```
-
-
 
 验证 Helm 安装
 
 ```bash
 $ helm version --short
-v3.6.2+gee407bd
+v3.11.2+g912ebc1
 ```
 
 
 
 #### 安装 Controller
 
-首先安装 TargetGroupBinding 这个 CRD
-
-```bash
-kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
-```
-
-添加 eks-chart
+添加helm仓库，添加 eks-chart，需等待一段时间
 
 ```bash
 helm repo add eks https://aws.github.io/eks-charts
 ```
 
-使用 Helm 安装 Controller，将 cluster-name 替换成你的集群名称，region-name 替换成你的 EKS 集群所在 region，vpc-id 替换成你的 EKS 集群所在 VPC ID
+更新helm仓库
 
 ```bash
-helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
-  --set clusterName=eks-fargate \
-  --set serviceAccount.create=false \
-  --set serviceAccount.name=aws-load-balancer-controller \
-  --set region=<region-name> \
-  --set vpcId=<vpc-id> \
-  -n kube-system
+helm repo update
 ```
 
-*举例：以巴林部署SMW为例子，配置文件代码如下*
+
+
+使用 Helm 安装 Controller，将 cluster name 替换成你的集群名称
 
 ```bash
-$ helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
-  --set clusterName=cluster-wms-prod-v1 \
+
+#请使用自己的cluster name替换下面命令中的mobile-app
+export CLUSTERNAME=mobile-app
+
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=$CLUSTERNAME \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller \
-  --set region=me-south-1\
-  --set vpcId=vpc-0f62b217700e212ab\
-  -n kube-system
-Release "aws-load-balancer-controller" does not exist. Installing it now.
+  --set enableShield=false \
+  --set enableWaf=false \
+  --set enableWafv2=false
+
+
+```
+
+以宁夏区域部署为例，创建成功后输出示例如下：
+
+```bash
+$ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+>   -n kube-system \
+>   --set clusterName=mobile-app \
+>   --set serviceAccount.create=false \
+>   --set serviceAccount.name=aws-load-balancer-controller \
+>   --set enableShield=false \
+>   --set enableWaf=false \
+>   --set enableWafv2=false
 NAME: aws-load-balancer-controller
-LAST DEPLOYED: Sun Jul 11 18:00:14 2021
+LAST DEPLOYED: Sun Apr  9 17:41:54 2023
 NAMESPACE: kube-system
 STATUS: deployed
 REVISION: 1
@@ -228,22 +228,12 @@ NOTES:
 AWS Load Balancer controller installed!
 ```
 
-
-
-可以使用以下命令获取 VPC ID
-
-```bash
-aws ec2 describe-vpcs --filter Name=cidr,Values=10.163.76.0/23 | jq -r '.Vpcs[0].VpcId'
-```
-
-
-
 查看部署状态和日志
 
 ```bash
 $ kubectl get deployment -n kube-system aws-load-balancer-controller
 NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
-aws-load-balancer-controller   0/2     2            0           40s
+aws-load-balancer-controller   2/2     2            2           19s
 ```
 
 
@@ -251,48 +241,53 @@ aws-load-balancer-controller   0/2     2            0           40s
 
 ```bash
 $ kubectl get po  -n kube-system | grep load-balancer
-aws-load-balancer-controller-6868948648-6p2qp   0/1     ContainerCreating   0          97s
-aws-load-balancer-controller-6868948648-nqzz4   0/1     ContainerCreating   0          97s
+aws-load-balancer-controller-55fc9998d-ldpnt   1/1     Running   0              10h
+aws-load-balancer-controller-55fc9998d-lfr2w   1/1     Running   0              10h
 ```
+
+
 
 查看 Controller 日志，注意将 pod name 替换成你自己的 Controller pod 名称
 
 ```bash
-$ kubectl logs -n kube-system aws-load-balancer-controller-6868948648-6p2qp
-{"level":"info","ts":1626026523.5794103,"msg":"version","GitVersion":"v2.2.1","GitCommit":"27803e3f8e3b637873f9bb59c56b78de01f65b79","BuildDate":"2021-06-25T17:18:28+0000"}
-{"level":"info","ts":1626026523.68036,"logger":"controller-runtime.metrics","msg":"metrics server is starting to listen","addr":":8080"}
-{"level":"info","ts":1626026523.7735102,"logger":"setup","msg":"adding health check for controller"}
-{"level":"info","ts":1626026523.7740898,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/mutate-v1-pod"}
-{"level":"info","ts":1626026523.7742438,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/mutate-elbv2-k8s-aws-v1beta1-targetgroupbinding"}
-{"level":"info","ts":1626026523.7743614,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/validate-elbv2-k8s-aws-v1beta1-targetgroupbinding"}
-{"level":"info","ts":1626026523.7744935,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/validate-networking-v1beta1-ingress"}
-{"level":"info","ts":1626026523.7747188,"logger":"setup","msg":"starting podInfo repo"}
-{"level":"info","ts":1626026525.7749126,"logger":"controller-runtime.manager","msg":"starting metrics server","path":"/metrics"}
-I0711 18:02:05.775941       1 leaderelection.go:242] attempting to acquire leader lease  kube-system/aws-load-balancer-controller-leader...
-I0711 18:02:05.792705       1 leaderelection.go:252] successfully acquired lease kube-system/aws-load-balancer-controller-leader
-{"level":"info","ts":1626026525.8751626,"logger":"controller-runtime.webhook.webhooks","msg":"starting webhook server"}
-{"level":"info","ts":1626026525.8753638,"logger":"controller","msg":"Starting EventSource","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.875451,"logger":"controller","msg":"Starting EventSource","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.875478,"logger":"controller","msg":"Starting EventSource","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.8753161,"logger":"controller","msg":"Starting EventSource","controller":"service","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.8756387,"logger":"controller","msg":"Starting Controller","controller":"service"}
-{"level":"info","ts":1626026525.875251,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"channel source: 0xc0004fddb0"}
-{"level":"info","ts":1626026525.876165,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"channel source: 0xc0004fde00"}
-{"level":"info","ts":1626026525.8761897,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.8762136,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.8762624,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.876483,"logger":"controller-runtime.certwatcher","msg":"Updated current TLS certificate"}
-{"level":"info","ts":1626026525.876678,"logger":"controller-runtime.webhook","msg":"serving webhook server","host":"","port":9443}
-{"level":"info","ts":1626026525.876838,"logger":"controller-runtime.certwatcher","msg":"Starting certificate watcher"}
-{"level":"info","ts":1626026525.9757025,"logger":"controller","msg":"Starting workers","controller":"service","worker count":3}
-{"level":"info","ts":1626026525.9759219,"logger":"controller","msg":"Starting EventSource","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026525.9764557,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"channel source: 0xc0004fde50"}
-{"level":"info","ts":1626026525.976607,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026526.076321,"logger":"controller","msg":"Starting Controller","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding"}
-{"level":"info","ts":1626026526.0765712,"logger":"controller","msg":"Starting workers","reconcilerGroup":"elbv2.k8s.aws","reconcilerKind":"TargetGroupBinding","controller":"targetGroupBinding","worker count":3}
-{"level":"info","ts":1626026526.0768263,"logger":"controller","msg":"Starting EventSource","controller":"ingress","source":"kind source: /, Kind="}
-{"level":"info","ts":1626026526.0768542,"logger":"controller","msg":"Starting Controller","controller":"ingress"}
-{"level":"info","ts":1626026526.0769176,"logger":"controller","msg":"Starting workers","controller":"ingress","worker count":3}
+$ kubectl logs -n kube-system aws-load-balancer-controller-55fc9998d-ldpnt
+
+{"level":"info","ts":1681062124.0686626,"msg":"version","GitVersion":"v2.4.7","GitCommit":"2ba14d1e232c1f2aa02063a3edd2ef855ba468d9","BuildDate":"2023-02-23T07:33:14+0000"}
+{"level":"info","ts":1681062124.087766,"logger":"controller-runtime.metrics","msg":"metrics server is starting to listen","addr":":8080"}
+{"level":"info","ts":1681062124.0900154,"logger":"setup","msg":"adding health check for controller"}
+{"level":"info","ts":1681062124.0901632,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/mutate-v1-pod"}
+{"level":"info","ts":1681062124.0902758,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/mutate-elbv2-k8s-aws-v1beta1-targetgroupbinding"}
+{"level":"info","ts":1681062124.0903578,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/validate-elbv2-k8s-aws-v1beta1-targetgroupbinding"}
+{"level":"info","ts":1681062124.090421,"logger":"controller-runtime.webhook","msg":"registering webhook","path":"/validate-networking-v1-ingress"}
+{"level":"info","ts":1681062124.0904868,"logger":"setup","msg":"starting podInfo repo"}
+{"level":"info","ts":1681062126.0907125,"msg":"starting metrics server","path":"/metrics"}
+I0409 17:42:06.090671       1 leaderelection.go:243] attempting to acquire leader lease kube-system/aws-load-balancer-controller-leader...
+{"level":"info","ts":1681062126.090831,"logger":"controller-runtime.webhook.webhooks","msg":"starting webhook server"}
+{"level":"info","ts":1681062126.0913892,"logger":"controller-runtime.certwatcher","msg":"Updated current TLS certificate"}
+{"level":"info","ts":1681062126.0915668,"logger":"controller-runtime.webhook","msg":"serving webhook server","host":"","port":9443}
+{"level":"info","ts":1681062126.0916717,"logger":"controller-runtime.certwatcher","msg":"Starting certificate watcher"}
+I0409 17:42:06.103185       1 leaderelection.go:253] successfully acquired lease kube-system/aws-load-balancer-controller-leader
+{"level":"info","ts":1681062126.1915586,"logger":"controller.ingress","msg":"Starting EventSource","source":"channel source: 0xc0005065a0"}
+{"level":"info","ts":1681062126.1917267,"logger":"controller.ingress","msg":"Starting EventSource","source":"channel source: 0xc0005065f0"}
+{"level":"info","ts":1681062126.1917841,"logger":"controller.ingress","msg":"Starting EventSource","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1917977,"logger":"controller.ingress","msg":"Starting EventSource","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1918027,"logger":"controller.ingress","msg":"Starting EventSource","source":"channel source: 0xc000506640"}
+{"level":"info","ts":1681062126.1918113,"logger":"controller.ingress","msg":"Starting EventSource","source":"channel source: 0xc000506690"}
+{"level":"info","ts":1681062126.1915424,"logger":"controller.targetGroupBinding","msg":"Starting EventSource","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1918488,"logger":"controller.targetGroupBinding","msg":"Starting EventSource","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1918628,"logger":"controller.targetGroupBinding","msg":"Starting EventSource","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1918402,"logger":"controller.ingress","msg":"Starting EventSource","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1919234,"logger":"controller.ingress","msg":"Starting EventSource","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1919477,"logger":"controller.ingress","msg":"Starting Controller"}
+{"level":"info","ts":1681062126.1918874,"logger":"controller.targetGroupBinding","msg":"Starting EventSource","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.192047,"logger":"controller.targetGroupBinding","msg":"Starting Controller","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding"}
+{"level":"info","ts":1681062126.1916137,"logger":"controller.service","msg":"Starting EventSource","source":"kind source: /, Kind="}
+{"level":"info","ts":1681062126.1921155,"logger":"controller.service","msg":"Starting Controller"}
+{"level":"info","ts":1681062126.2931652,"logger":"controller.targetGroupBinding","msg":"Starting workers","reconciler group":"elbv2.k8s.aws","reconciler kind":"TargetGroupBinding","worker count":3}
+{"level":"info","ts":1681062126.2933955,"logger":"controller.service","msg":"Starting workers","worker count":3}
+{"level":"info","ts":1681062126.2934783,"logger":"controller.ingress","msg":"Starting workers","worker count":3}
+{"level":"info","ts":1681062242.4170349,"logger":"backend-sg-provider","msg":"creating securityGroup","name":"k8s-traffic-mobileapp-73ff9edb02"}
+{"level":"info","ts":1681062242.7008169,"logger":"controllers.ingress","msg":"Auto Create SG","LB SGs":[{"$ref":"#/resources/AWS::EC2::SecurityGroup/ManagedLBSecurityGroup/status/groupID"},"sg-0159358c140ad00be"],"backend SG":"sg-0159358c140ad00be"}
 
 ```
 
@@ -300,7 +295,7 @@ I0711 18:02:05.792705       1 leaderelection.go:252] successfully acquired lease
 
 
 
-
+### 本章节完成
 
 
 
