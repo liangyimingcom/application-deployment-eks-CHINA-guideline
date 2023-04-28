@@ -130,6 +130,8 @@ kubectl delete -f 2048_full.yaml
 
 
 
+
+
 ## 选项2：Kubernetes Service 与 NLB 模式 (AWS的4层负载均衡器)
 
 - 参考 nginx-nlb.yaml, 创建一个nginx pod，并通过LoadBalancer类型对外暴露 
@@ -140,7 +142,7 @@ kubectl delete -f 2048_full.yaml
 
   我们创建一个简单的 Nginx Service，指定使用 nlb 模式。首先创建 yaml 文件如下
 
-```json
+```
 cat << EOF > nginx-nlb.yaml
 ---
 apiVersion: apps/v1
@@ -211,7 +213,7 @@ curl -m3 -v $ELB
 
 查看结果是否一致
 
-```bash
+```
 [ec2-user@ip-10-203-0-177 workspace]$ curl -m3 -v $ELB
 *   Trying 161.189.90.53:80...
 * Connected to ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn (161.189.90.53) port 80 (#0)
