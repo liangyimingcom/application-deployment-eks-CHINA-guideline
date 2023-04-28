@@ -173,7 +173,8 @@ kind: Service
 metadata:
   name: "service-nginx"
   annotations:
-        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing  
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
 spec:
   selector:
     app: nginx
@@ -277,6 +278,37 @@ kubectl delete -f nginx-nlb.yaml
 ```
 
 
+
+> #### 属性说明 service.beta.kubernetes.io/aws-load-balancer-scheme
+>
+> Annotations "service.beta.kubernetes.io/aws-load-balancer-scheme" 的值为 "internet-facing"，用于指定 AWS Load Balancer 的模式。当该值为 "internet-facing" 时，AWS Load Balancer 将被配置为 Internet-facing 模式，可以通过公共互联网进行传输。反之，当该值为 "internal" 时，AWS Load Balancer 将被配置为 Internal 模式，只能在 VPC 内部进行传输。
+>
+> 该注释通常用于 Kubernetes Service YAML 文件中的 spec 部分的 annotations 对象中，用于配置 Kubernetes 集群中的负载均衡器与 AWS 之间的集成。
+>
+> 下面是一个示例 YAML 文件，展示如何使用该注释配置 Kubernetes 中的 NLB 为 Internet-facing 模式：
+>
+> ```
+> apiVersion: v1
+> kind: Service
+> metadata:
+>   name: my-nlb-service
+>   annotations:
+>     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+>     service.beta.kubernetes.io/aws-load-balancer-type: nlb
+>     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+> spec:
+>   selector:
+>     app: my-app
+>   type: LoadBalancer
+>   ports:
+>   - protocol: TCP
+>     port: 80
+>     targetPort: 80
+> ```
+>
+> 在上述示例中，service.beta.kubernetes.io/aws-load-balancer-scheme 被设置为 "internet-facing"，在创建 Kubernetes Service 时，将创建一个 Internet-facing 的 NLB 负载均衡器。
+>
+> 完整的AWS Load Balancer Controller的Annotations属性说明，请参考：https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.3/guide/service/annotations/
 
 
 
