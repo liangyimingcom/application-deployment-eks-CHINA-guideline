@@ -116,17 +116,31 @@ http://k8s-game2048-ingress2-bc39cec2ee-1451929837.cn-northwest-1.elb.amazonaws.
 
 ![image-20230410121710286](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230410121710286.png)
 
-
-
-
-
-
-
-## 选项2：Kubernetes Service 与 NLB IP 模式 (AWS的4层负载均衡器)
-
-我们创建一个简单的 Nginx Service，指定使用 nlb-ip 模式。首先创建 yaml 文件如下
+>清理
 
 ```bash
+kubectl delete -f 2048_full.yaml
+```
+
+
+
+
+
+
+
+
+
+## 选项2：Kubernetes Service 与 NLB 模式 (AWS的4层负载均衡器)
+
+- 参考 nginx-nlb.yaml, 创建一个nginx pod，并通过LoadBalancer类型对外暴露 
+
+- 特别提醒80/443 在AWS China Region需要完成备案流程，请联系你的商业经理确保已开通，或者自行更改nginx-nlb.yaml的端口
+
+  
+
+  我们创建一个简单的 Nginx Service，指定使用 nlb 模式。首先创建 yaml 文件如下
+
+```json
 cat << EOF > nginx-nlb.yaml
 ---
 apiVersion: apps/v1
@@ -179,63 +193,86 @@ kubectl apply -f nginx-nlb.yaml
 
 
 
-查看 Service 和 NLB 的创建情况，以及 Pod 是否以 IP 形式挂载
+查看 Service 和 NLB 的创建情况，以及 Pod 是否挂载
 
 ```bash
-## 查看 nginx pod 创建情况
-$ kubectl get po -o wide
-NAME                                READY   STATUS    RESTARTS   AGE   IP              NODE                                                   NOMINATED NODE   READINESS GATES
-nginx-deployment-7848d4b86f-6crqw   1/1     Running   0          87s   10.163.76.169   fargate-ip-10-163-76-169.me-south-1.compute.internal   <none>           <none>
+## Check deployment status
+kubectl get pods
+kubectl get deployment nginx-deployment 
 
-## 查看 nginx service 信息
-$ kubectl describe service nginx-svc-nlb-ip
-Name:                     nginx-svc-nlb-ip
-Namespace:                default
-Labels:                   <none>
-Annotations:              service.beta.kubernetes.io/aws-load-balancer-type: nlb-ip
-Selector:                 app=nginx
-Type:                     LoadBalancer
-IP:                       172.20.73.211
-LoadBalancer Ingress:     k8s-default-nginxsvc-e9a1a33a6a-8ff613319b96380d.elb.me-south-1.amazonaws.com
-Port:                     <unset>  80/TCP
-TargetPort:               80/TCP
-NodePort:                 <unset>  30633/TCP
-Endpoints:                10.163.76.169:80
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Events:
-  Type    Reason                  Age   From                Message
-  ----    ------                  ----  ----                -------
-  Normal  EnsuringLoadBalancer    101s  service-controller  Ensuring load balancer
-  Normal  SuccessfullyReconciled  99s   service             Successfully reconciled
+## Get the external access 确保 EXTERNAL-IP是一个有效的AWS Network Load Balancer的地址
+kubectl get service service-nginx -o wide 
+
+## 下面可以试着访问这个地址
+ELB=$(kubectl get service service-nginx -o json | jq -r '.status.loadBalancer.ingress[].hostname')
+curl -m3 -v $ELB
+
+```
+
+查看结果是否一致
+
+```bash
+[ec2-user@ip-10-203-0-177 workspace]$ curl -m3 -v $ELB
+*   Trying 161.189.90.53:80...
+* Connected to ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn (161.189.90.53) port 80 (#0)
+> GET / HTTP/1.1
+> Host: ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn
+> User-Agent: curl/7.79.1
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.23.4
+< Date: Thu, 06 Apr 2023 19:08:42 GMT
+< Content-Type: text/html
+< Content-Length: 615
+< Last-Modified: Tue, 28 Mar 2023 15:01:54 GMT
+< Connection: keep-alive
+< ETag: "64230162-267"
+< Accept-Ranges: bytes
+< 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+* Connection #0 to host ad04ec90ceede477d9985e5437940da0-8c94a65dd04d0a54.elb.cn-northwest-1.amazonaws.com.cn left intact
 
 ```
 
 
 
-访问 nginx service 对应的 NLB 地址：
+查看 Service 和 NLB 的创建情况，以及 Pod 是否挂载
+
+在 AWS Console 上，查看 NLB 后面挂载的目标组，为 INSTANCE实例 模式；
+
+![image-20230428110356240](https://raw.githubusercontent.com/liangyimingcom/storage/master/PicGo/image-20230428110356240.png)
+
+
+
+>清理
 
 ```bash
-## 访问 nginx service 对应的 NLB 地址
-$ curl -I k8s-default-nginxsvc-e9a1a33a6a-8ff613319b96380d.elb.me-south-1.amazonaws.com
-HTTP/1.1 200 OK
-Server: nginx/1.19.8
-Date: Tue, 30 Mar 2021 16:44:33 GMT
-Content-Type: text/html
-Content-Length: 612
-Last-Modified: Tue, 09 Mar 2021 15:27:51 GMT
-Connection: keep-alive
-ETag: "604793f7-264"
-Accept-Ranges: bytes
+kubectl delete -f nginx-nlb.yaml 
 ```
-
-查看 Service 和 NLB 的创建情况，以及 Pod 是否以 IP 形式挂载
-
-
-
-在 AWS Console 上，查看 NLB 后面挂载的目标组，为 IP 模式；目标 IP 为 192.168.155.173，即上面 kubectl describe service 得到的 Endpoints 地址
-
-<img src="image/eks/image-lb-controller-nlb-ip.jpg" alt="image-lb-controller-nlb-ip-2" style="zoom:50%;" />
 
 
 
